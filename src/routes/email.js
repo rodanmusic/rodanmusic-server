@@ -5,6 +5,7 @@ let sendEmail = (req, res) => {
     
 }
 
-router.get('/send',  (req, res) => sendEmail(req, res));
+
+router.get('/send',  (req, res) => sendEmail(req.body, res));
 
 export default router;

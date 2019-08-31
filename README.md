@@ -1,0 +1,1 @@
+A server for retrieving blog data through the Tumblr api, and for managing user emails.
