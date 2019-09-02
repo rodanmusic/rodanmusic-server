@@ -1,8 +1,7 @@
 import express from 'express';
 import httpRequest from 'request';
 import HttpStatus from 'http-status-codes';
-import options from '../logger/winston';
-import logger from '../logger/winston'
+import logger from '../logger/winston';
 
 const router = express.Router();
 
@@ -11,7 +10,7 @@ const TUMBLR_UUID = 't:g2nbrkbakUCxZd_UpGoAUA';
 const TUMBLR_BASE_URI = 'https://api.tumblr.com/v2/blog';
 const TUMBLR_ENDPOINT = 'posts';
 
-const DEFAULT_PLAYER_SIZE = 250;
+const DEFAULT_PLAYER_SIZE = 500;
 
 let getBlogEntries = (req, res) => {
     try {
@@ -20,14 +19,16 @@ let getBlogEntries = (req, res) => {
                 res.json({"message": "No Posts For the Selected Genre"});
                 res.status(HttpStatus.OK);
             } else if(error || apiResponse.statusCode !== HttpStatus.OK){
-                processErrorResponse(req, res, apiResponse, error);
+                res = processErrorResponse(req, res, apiResponse, error);
             } else {
-                generateJsonResponse(res, body);
+                res = generateJsonResponse(res, body);
             }
+            res.end();
         });
     } catch (e) {
         logger.error(e);
         res.json({"message": "Unable to retrieve posts"});
+        res.end();
     }
 };
 
@@ -37,7 +38,7 @@ let buildURI = (tag) => {
 
 let getApiKey = () => {
     // TODO: retrieve the api key from the environmental variables
-    return "";
+    return '';
 };
 
 let processErrorResponse = (req, res, apiResponse, error) =>{
@@ -68,11 +69,12 @@ let processErrorResponse = (req, res, apiResponse, error) =>{
     }
     // add email functionality to notify me when an error occurs.
     res.json({"message": "Unknown error occured.  Please contact the admin if the problem persists."});
+    return res;
 };
 
 let generateJsonResponse = (res, body) => {
     // parse the response, and create the proper json response object
-    let structuredJSONResponse = []; 
+    let listOfBlogPosts = []; 
 
     let bodyJSON = JSON.parse(body);
     let posts = bodyJSON.response.posts;
@@ -86,15 +88,24 @@ let generateJsonResponse = (res, body) => {
             for(let p = 0; p < players.length; p++){
                 let player = players[p];
                 if(player.width && player.width === DEFAULT_PLAYER_SIZE){
-                    structuredJSONResponse.push(player.embed_code);
+                    listOfBlogPosts.push(resizeIframe(player.embed_code));
                     break;
                 }
             }
         }
     }
     res.status(HttpStatus.OK);
-    res.json(structuredJSONResponse);
+    let responseJSON = {
+        "postEntries" : `${JSON.stringify(listOfBlogPosts)}`
+    };
+    res.json(responseJSON);
+    return res;
 };
+
+let resizeIframe = (iframe) => {
+    iframe = iframe.replace(/height="[0-9]*"/, 'height="180"')
+    return iframe.replace(/width="[0-9]*"/, 'width="100%"');
+}
 
 router.get('/posts/tags/:tag', (req, res) => getBlogEntries(req, res));
 
