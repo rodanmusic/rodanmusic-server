@@ -16,7 +16,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.json());
 
 let whitelist = ['http://localhost:3000', 'http://www.rodanmusic.com'];
-app.use('/email', cors({
+app.use('/contact', cors({
     'origin': whitelist,
     'optionsSuccessStatus': 200,
     'Access-Control-Allow-Methods': 'POST'

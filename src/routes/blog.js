@@ -2,15 +2,19 @@ import express from 'express';
 import httpRequest from 'request';
 import HttpStatus from 'http-status-codes';
 import logger from '../logger/winston';
-
+const TRANSPORT = require('../mailer/transport.js');
 const router = express.Router();
+const TO_ADDRESS = process.env.TO_MAIL;
+const FROM_ADDRESS = process.env.FROM_MAIL;
 
 // endpoint data
 const TUMBLR_UUID = 't:g2nbrkbakUCxZd_UpGoAUA';
 const TUMBLR_BASE_URI = 'https://api.tumblr.com/v2/blog';
 const TUMBLR_ENDPOINT = 'posts';
-
+const API_KEY = process.env.API_KEY;
 const DEFAULT_PLAYER_SIZE = 500;
+
+router.get('/posts/tags/:tag', (req, res) => getBlogEntries(req, res));
 
 let getBlogEntries = (req, res) => {
     try {
@@ -33,12 +37,8 @@ let getBlogEntries = (req, res) => {
 };
 
 let buildURI = (tag) => {
-    return `${TUMBLR_BASE_URI}/${TUMBLR_UUID}/${TUMBLR_ENDPOINT}?api_key=${getApiKey()}&tag=${tag}&type=video`;
-};
-
-let getApiKey = () => {
-    // TODO: retrieve the api key from the environmental variables
-    return '';
+    tag = encodeURI(tag);
+    return `${TUMBLR_BASE_URI}/${TUMBLR_UUID}/${TUMBLR_ENDPOINT}?api_key=${API_KEY}&tag=${tag}&type=video`;
 };
 
 let processErrorResponse = (req, res, apiResponse, error) =>{
@@ -67,7 +67,7 @@ let processErrorResponse = (req, res, apiResponse, error) =>{
         }
         logger.error(`Tumblr API request failed with status code: ${apiResponse.statusCode}.  Reason: ${httpStatusErrorMessage}.`);
     }
-    // add email functionality to notify me when an error occurs.
+    notifyOfErrorByEmail(httpStatusErrorMessage);
     res.json({"message": "Unknown error occured.  Please contact the admin if the problem persists."});
     return res;
 };
@@ -80,15 +80,16 @@ let generateJsonResponse = (res, body) => {
     let posts = bodyJSON.response.posts;
 
      // limiting to last 5 tracks, then link to the blog on page.
-    let numVideos = (posts.length > 5) ? 5 : posts.length;
-    for(let i = 0; i < numVideos; i++){
+    let numberOfVideos = 0;
+    for(let i = 0; (i < posts.length && numberOfVideos < 5); i++){
         let post = posts[i];
         if(post.player){
             let players = post.player;
             for(let p = 0; p < players.length; p++){
                 let player = players[p];
-                if(player.width && player.width === DEFAULT_PLAYER_SIZE){
+                if(player.embed_code && player.width && player.width === DEFAULT_PLAYER_SIZE){
                     listOfBlogPosts.push(resizeIframe(player.embed_code));
+                    numberOfVideos++;
                     break;
                 }
             }
@@ -105,8 +106,19 @@ let generateJsonResponse = (res, body) => {
 let resizeIframe = (iframe) => {
     iframe = iframe.replace(/height="[0-9]*"/, 'height="180"')
     return iframe.replace(/width="[0-9]*"/, 'width="100%"');
-}
+};
 
-router.get('/posts/tags/:tag', (req, res) => getBlogEntries(req, res));
+let notifyOfErrorByEmail = (error) => {
+    TRANSPORT.sendMail({
+        from: FROM_ADDRESS, 
+        to: TO_ADDRESS, 
+        subject: 'Blog Retrieval Error', 
+        html: `<p>${error}</p>`
+    }, (err, info) => {
+        if(err){
+            logger.error(`Unable to send email regarding the following error: ${error}.  Reason: ${err}`);
+        }
+    });
+}
 
 export default router;
