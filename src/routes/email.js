@@ -3,25 +3,30 @@ import logger from '../logger/winston';
 import HttpStatus from 'http-status-codes';
 
 var router = express.Router();
-const TO_ADDRESS = process.env.TO_MAIL;
+const TO_ADDRESS = 'rodanmusic@icloud.com';
 const TRANSPORT = require('../mailer/transport.js');
 
-router.get('/send',  (req, res) => handleMessage(req.body, res));
+router.post('/send',  (req, res) => handleMessage(req.body, res));
 
 let handleMessage = (req, res) => {
-    let requestBody = JSON.parse(req.body);
+    /*
+    TODO: when I add a dropdown for email type, convert this to be a template system for different email types.
+    */
     const options = {
-        from: requestBody.email,
+        from: req.data.email,
         to: TO_ADDRESS,
-        subject: `EMAIL RECEIVED FROM RODANMUSIC.COM FROM EMAIL: ${requestBody.email}`,
-        html: `<p>MESSAGE:${requestBody.message}</p>`
+        subject: `Message recieved from RODANMUSIC.COM.`,
+        html: `
+            <b>SENDER</b>:<br /> ${req.data.name}<br /><br />
+            <b>SENDER EMAIL</b>:<br /> ${req.data.email}<br /><br />
+            <b>MESSAGE</b>:<br /> ${req.data.message}<br />
+        `
     };
-    res = sendEmail(options, res);
-    res.end();
+    sendEmail(options, res);
 };
 
-let sendEmail = async (options, res) => {
-    await TRANSPORT.sendMail(options, (err, info) => {
+function sendEmail(options, res) {
+    TRANSPORT.sendMail(options, (err, info) => {
         if(err){
             res.status(HttpStatus.BAD_GATEWAY);
             res.json({"message": "Message unable to be sent!  Please wait and try again.  If error doesn't go away please contact Rodan on his Facebook or Soundcloud."});
@@ -31,8 +36,8 @@ let sendEmail = async (options, res) => {
             res.json({"message": "Message successfully sent!"});
             logger.info(`Message from : ${options.from} sent successfully.  Result: ${info}`);
         }
+        res.end();
     });
-    return res;
 };
 
 export default router;

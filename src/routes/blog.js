@@ -2,16 +2,18 @@ import express from 'express';
 import httpRequest from 'request';
 import HttpStatus from 'http-status-codes';
 import logger from '../logger/winston';
-const TRANSPORT = require('../mailer/transport.js');
+
 const router = express.Router();
+
+const TRANSPORT = require('../mailer/transport.js');
 const TO_ADDRESS = process.env.TO_MAIL;
 const FROM_ADDRESS = process.env.FROM_MAIL;
 
-// endpoint data
 const TUMBLR_UUID = 't:g2nbrkbakUCxZd_UpGoAUA';
 const TUMBLR_BASE_URI = 'https://api.tumblr.com/v2/blog';
 const TUMBLR_ENDPOINT = 'posts';
 const API_KEY = process.env.API_KEY;
+
 const DEFAULT_PLAYER_SIZE = 500;
 
 router.get('/posts/tags/:tag', (req, res) => getBlogEntries(req, res));
