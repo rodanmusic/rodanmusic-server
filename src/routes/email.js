@@ -3,7 +3,7 @@ import logger from '../logger/winston';
 import HttpStatus from 'http-status-codes';
 
 var router = express.Router();
-const TO_ADDRESS = 'rodanmusic@icloud.com';
+const TO_ADDRESS = process.env.TO_ADDRESS;
 const TRANSPORT = require('../mailer/transport.js');
 
 router.post('/send',  (req, res) => handleMessage(req.body, res));
