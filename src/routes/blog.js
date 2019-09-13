@@ -2,17 +2,17 @@ import express from 'express';
 import httpRequest from 'request';
 import HttpStatus from 'http-status-codes';
 import logger from '../logger/winston';
+const TRANSPORT = require('../mailer/transport.js');
 
 const router = express.Router();
 
-const TRANSPORT = require('../mailer/transport.js');
-const TO_ADDRESS = process.env.TO_MAIL;
-const FROM_ADDRESS = process.env.FROM_MAIL;
+const TO_ADDRESS = process.env.TO_ADDRESS;
+const FROM_ADDRESS = process.env.FROM_ADDRESS;
+const TUMBLR_UUID = process.env.TUMBLR_UUID;
+const TUMBLR_API_KEY = process.env.TUMBLR_API_KEY;
 
-const TUMBLR_UUID = 't:g2nbrkbakUCxZd_UpGoAUA';
 const TUMBLR_BASE_URI = 'https://api.tumblr.com/v2/blog';
 const TUMBLR_ENDPOINT = 'posts';
-const API_KEY = process.env.API_KEY;
 
 const DEFAULT_PLAYER_SIZE = 500;
 
@@ -32,7 +32,7 @@ let getBlogEntries = (req, res) => {
             res.end();
         });
     } catch (e) {
-        logger.error(e);
+        logger.error('MESSAGE: ' + e.message, 'STACK:' + e.stack);
         res.json({"message": "Unable to retrieve posts"});
         res.end();
     }
@@ -40,7 +40,7 @@ let getBlogEntries = (req, res) => {
 
 let buildURI = (tag) => {
     tag = encodeURI(tag);
-    return `${TUMBLR_BASE_URI}/${TUMBLR_UUID}/${TUMBLR_ENDPOINT}?api_key=${API_KEY}&tag=${tag}&type=video`;
+    return `${TUMBLR_BASE_URI}/${TUMBLR_UUID}/${TUMBLR_ENDPOINT}?api_key=${TUMBLR_API_KEY}&tag=${tag}&type=video`;
 };
 
 let processErrorResponse = (req, res, apiResponse, error) =>{
