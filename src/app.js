@@ -1,30 +1,19 @@
 // app.js
 import express from 'express';
-import path from 'path';
 import logger from 'morgan';
 import email from './routes/email';
 import blog from './routes/blog';
-import cors from 'cors';
+import path from 'path';
 
 const app = express();
 
-app.use(cors());
+app.use( express.static(`${__dirname}/../clientBuild` ));
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
-app.use(express.static(path.join(__dirname, '../public')));
 app.use(express.json());
 
-let whitelist = ['http://localhost:3000', 'http://www.rodanmusic.com'];
-app.use('/contact', cors({
-    'origin': whitelist,
-    'optionsSuccessStatus': 200,
-    'Access-Control-Allow-Methods': 'POST'
-}), email);
-app.use('/blog', cors({
-    'origin': whitelist,
-    'optionsSuccessStatus': 200,
-    'Access-Control-Allow-Methods': 'GET'
-}), blog);
-
+app.use('/blog', blog);
+app.use('/email',email);
+app.get('*', (req, res)=>{  res.sendFile(path.join(__dirname, '../clientBuild/index.html'));})
 export default app;
