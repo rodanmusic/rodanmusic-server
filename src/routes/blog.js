@@ -18,7 +18,7 @@ const DEFAULT_PLAYER_SIZE = 500;
 
 router.get('/posts/tags/:tag', (req, res) => getBlogEntries(req, res));
 
-let getBlogEntries = (req, res) => {
+const getBlogEntries = (req, res) => {
     try {
         httpRequest.get(buildURI(req.params.tag), {timeout: 10000}, (error, apiResponse, body) => {
             if(body && body.length === 0){
@@ -38,12 +38,13 @@ let getBlogEntries = (req, res) => {
     }
 };
 
-let buildURI = (tag) => {
+const buildURI = (tag) => {
     tag = encodeURI(tag);
-    return `${TUMBLR_BASE_URI}/${TUMBLR_UUID}/${TUMBLR_ENDPOINT}?api_key=${TUMBLR_API_KEY}&tag=${tag}&type=video`;
+    const URI = `${TUMBLR_BASE_URI}/${TUMBLR_UUID}/${TUMBLR_ENDPOINT}?api_key=${TUMBLR_API_KEY}&tag=${tag}`;
+    return URI;
 };
 
-let processErrorResponse = (req, res, apiResponse, error) =>{
+const processErrorResponse = (req, res, apiResponse, error) =>{
     let httpStatusErrorMessage = '';
     if(error){
         if(error.code === 'ETIMEDOUT'){
@@ -74,26 +75,34 @@ let processErrorResponse = (req, res, apiResponse, error) =>{
     return res;
 };
 
-let generateJsonResponse = (res, body) => {
+const generateJsonResponse = (res, body) => {
     // parse the response, and create the proper json response object
     let listOfBlogPosts = []; 
 
     let bodyJSON = JSON.parse(body);
+    console.log(bodyJSON);
     let posts = bodyJSON.response.posts;
 
      // limiting to last 5 tracks, then link to the blog on page.
     let numberOfVideos = 0;
     for(let i = 0; (i < posts.length && numberOfVideos < 5); i++){
         let post = posts[i];
-        if(post.player){
-            let players = post.player;
-            for(let p = 0; p < players.length; p++){
-                let player = players[p];
-                if(player.embed_code && player.width && player.width === DEFAULT_PLAYER_SIZE){
-                    listOfBlogPosts.push(resizeIframe(player.embed_code));
-                    numberOfVideos++;
-                    break;
+        if(post.type === 'video'){
+            if(post.player){
+                let players = post.player;
+                for(let p = 0; p < players.length; p++){
+                    let player = players[p];
+                    if(player.embed_code && player.width && player.width === DEFAULT_PLAYER_SIZE){
+                        listOfBlogPosts.push(resizeIframe(player.embed_code));
+                        numberOfVideos++;
+                        break;
+                    }
                 }
+            }
+        } else if (post.type === 'text'){
+            if(post.body){
+                listOfBlogPosts.push(resizeIframe(post.body.substring(post.body.indexOf('<iframe'), post.body.indexOf('</iframe>'))));
+                numberOfVideos++;
             }
         }
     }
@@ -105,12 +114,12 @@ let generateJsonResponse = (res, body) => {
     return res;
 };
 
-let resizeIframe = (iframe) => {
+const resizeIframe = (iframe) => {
     iframe = iframe.replace(/height="[0-9]*"/, 'height="180"')
     return iframe.replace(/width="[0-9]*"/, 'width="100%"');
 };
 
-let notifyOfErrorByEmail = (error) => {
+const notifyOfErrorByEmail = (error) => {
     TRANSPORT.sendMail({
         from: FROM_ADDRESS, 
         to: TO_ADDRESS, 
